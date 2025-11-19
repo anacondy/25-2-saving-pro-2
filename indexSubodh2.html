@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Student Exam Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- [GLOBAL RESET] --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+
+        /* --- [GLASSMORPHISM BACKGROUND] --- */
+        body {
+            height: 100vh; width: 100%; background-color: #050505;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; position: relative; transition: background 0.8s ease;
+        }
+
+        /* Noise Texture */
+        body::before {
+            content: ""; position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            opacity: 0.4; pointer-events: none; z-index: 2;
+        }
+
+        /* --- [THEME ENGINE] --- */
+        .glow-effect {
+            position: absolute; width: 80vw; height: 80vw; max-width: 800px; max-height: 800px;
+            background: var(--theme-color, #1db954); filter: blur(120px); border-radius: 50%;
+            top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.15; z-index: 0;
+            transition: background 0.6s ease; will-change: background;
+        }
+
+        /* --- [PANORAMIC WINDOW] --- */
+        .carousel-window {
+            width: 100%; height: 70vh; min-height: 500px;
+            position: relative; z-index: 10; display: flex; align-items: center;
+        }
+
+        /* --- [GPU TRACK] --- */
+        .carousel-track {
+            display: flex; align-items: center; height: 100%;
+            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform;
+        }
+
+        /* --- [RESPONSIVE CARD] --- */
+        .glass-card {
+            flex: 0 0 700px; width: 700px; height: 450px; position: relative;
+            background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); padding: 40px;
+            display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+            margin-right: 80px; opacity: 0.3; transform: scale(0.85);
+            transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .glass-card.active {
+            opacity: 1; transform: scale(1);
+            box-shadow: 0 30px 80px -10px var(--shadow-color, rgba(29, 185, 84, 0.3));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .grid-background {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: -1;
+        }
+
+        /* --- [CONTENT STYLING] --- */
+        .card-tab {
+            position: absolute; top: 0; right: 80px; transform: translateY(-100%);
+            background: #f0f0f0; padding: 12px 30px; border-radius: 15px 15px 0 0;
+            color: #111; font-weight: 600; font-size: 0.9rem; z-index: 20;
+        }
+
+        .meta-header {
+            display: flex; justify-content: space-between; font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        h1 {
+            font-size: 3rem; line-height: 1.1; margin-bottom: 10px; font-weight: 700;
+            background: linear-gradient(to right, #fff, #ccc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+
+        h2 { font-size: 1.5rem; font-weight: 400; margin-bottom: 20px; color: var(--theme-color); }
+
+        p.description {
+            font-size: 0.95rem; line-height: 1.6; color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 30px; max-width: 70%;
+        }
+
+        .btn {
+            display: inline-block; padding: 12px 24px; border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 30px; color: white; text-decoration: none; font-size: 0.8rem;
+            transition: 0.3s; background: rgba(255,255,255,0.05);
+        }
+        .btn:hover { background: white; color: black; }
+
+        .footer-info {
+            display: flex; justify-content: space-between; color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem; align-items: flex-end; margin-top: auto;
+        }
+
+        /* --- [VISUAL ASSETS] --- */
+        .cube-wrapper {
+            position: absolute; bottom: -10%; right: -10%; width: 300px; height: 300px; z-index: 5; pointer-events: none;
+        }
+        .cube-placeholder {
+            width: 100%; height: 100%;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), var(--theme-color));
+            clip-path: polygon(50% 0%, 90% 20%, 100% 60%, 75% 100%, 25% 100%, 0% 60%, 10% 20%);
+            opacity: 0.8; filter: blur(5px); animation: float 6s ease-in-out infinite;
+        }
+        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-15px); } }
+
+        /* --- [MOBILE] --- */
+        @media (max-width: 768px) {
+            .glass-card { flex: 0 0 85vw; width: 85vw; height: 60vh; margin-right: 30px; padding: 25px; }
+            .card-tab { right: 20px; font-size: 0.8rem; padding: 8px 20px; }
+            h1 { font-size: 2.2rem; }
+            .cube-wrapper { width: 150px; height: 150px; bottom: 0; right: -20px; }
+        }
+
+        .top-left-credit { position: absolute; top: 40px; left: 40px; color: rgba(255,255,255,0.7); font-size: 0.8rem; z-index: 5; }
+        .dots { position: absolute; top: 40px; right: 40px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; z-index: 5; }
+        .dot { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+        .instructions { position: absolute; bottom: 30px; width: 100%; text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem; animation: blink 2s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 0.3;} 50% { opacity: 0.8;}}
+    </style>
+</head>
+<body>
+
+    <div class="glow-effect" id="bgGlow"></div>
+
+    <div class="top-left-credit">SS Jain Subodh College<br>Project: Exam Archive<br>&#8599;</div>
+    <div class="dots">
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+    </div>
+
+    <div class="carousel-window">
+        <div class="carousel-track" id="track">
+
+            <div class="glass-card active" data-theme="#1db954">
+                <div class="card-tab">Physics Dept</div>
+                <div class="grid-background"></div>
+                <div class="content-wrapper">
+                    <div class="meta-header"><span>Paper III</span><span>20. 11. 25</span></div>
+                    <h1>Quantum<br>Mechanics</h1>
+                    <h2>& Spectroscopy;</h2>
+                    <p class="description">Access previous year papers for B.Sc. Pt-II. Topics: Schrodinger equation, operators, and atomic spectra.</p>
+                    <a href="#" class="btn">View Papers (3)</a>
+                </div>
+                <div class="cube-wrapper"><div class="cube-placeholder"></div></div>
+                <div class="footer-info"><span>/// Student Cell</span><span class="pagination">1 of 6 >></span></div>
+            </div>
+
+            <div class="glass-card" data-theme="#8e44ad">
+                <div class="card-tab">Statistics</div>
+                <div class="grid-background"></div>
+                <div class="content-wrapper">
+                    <div class="meta-header"><span>Paper I</span><span>21. 11. 25</span></div>
+                    <h1>Statistical<br>Inference</h1>
+                    <h2>Testing Hypothesis;</h2>
+                    <p class="description">Download papers regarding sampling distributions, estimation theory, and rigorous hypothesis testing.</p>
+                    <a href="#" class="btn">View Papers (5)</a>
+                </div>
+                <div class="cube-wrapper"><div class="cube-placeholder"></div></div>
+                <div class="footer-info"><span>/// Student Cell</span><span class="pagination">2 of 6 >></span></div>
+            </div>
+
+            <div class="glass-card" data-theme="#2980b9">
+                <div class="card-tab">Comp App</div>
+                <div class="grid-background"></div>
+                <div class="content-wrapper">
+                    <div class="meta-header"><span>Practical</span><span>22. 11. 25</span></div>
+                    <h1>Data<br>Structures</h1>
+                    <h2>C++ & Algorithms;</h2>
+                    <p class="description">Review code snippets and theory papers for Arrays, Linked Lists, Trees, and Sorting algorithms.</p>
+                    <a href="#" class="btn">View Code</a>
+                </div>
+                <div class="cube-wrapper"><div class="cube-placeholder"></div></div>
+                <div class="footer-info"><span>/// Student Cell</span><span class="pagination">3 of 6 >></span></div>
+            </div>
+
+            <div class="glass-card" data-theme="#d35400">
+                <div class="card-tab">Notice Board</div>
+                <div class="grid-background"></div>
+                <div class="content-wrapper">
+                    <div class="meta-header"><span>Alert</span><span>23. 11. 25</span></div>
+                    <h1>Semester<br>Exams</h1>
+                    <h2>Datesheet 2025;</h2>
+                    <p class="description">The tentative schedule for the upcoming Semester III examinations. Check your batch timings.</p>
+                    <a href="#" class="btn">Download PDF</a>
+                </div>
+                <div class="cube-wrapper"><div class="cube-placeholder"></div></div>
+                <div class="footer-info"><span>/// Admin Office</span><span class="pagination">4 of 6 >></span></div>
+            </div>
+
+            <div class="glass-card" data-theme="#c0392b">
+                <div class="card-tab">Restricted</div>
+                <div class="grid-background"></div>
+                <div class="content-wrapper">
+                    <div class="meta-header"><span>System</span><span>24. 11. 25</span></div>
+                    <h1>Admin<br>Uploads</h1>
+                    <h2>Authorized Only;</h2>
+                    <p class="description">Secure gateway for faculty to upload new papers. Requires 'Alvido' authentication credentials.</p>
+                    <a href="#" class="btn">Login Required</a>
+                </div>
+                <div class="cube-wrapper"><div class="cube-placeholder"></div></div>
+                <div class="footer-info"><span>/// Security</span><span class="pagination">5 of 6 >></span></div>
+            </div>
+
+             <div class="glass-card" data-theme="#16a085">
+                <div class="card-tab">Marksheet</div>
+                <div class="grid-background"></div>
+                <div class="content-wrapper">
+                    <div class="meta-header"><span>Results</span><span>25. 11. 25</span></div>
+                    <h1>Check<br>Results</h1>
+                    <h2>Evaluation;</h2>
+                    <p class="description">View internal assessment marks and previous semester Grade Cards (CGPA).</p>
+                    <a href="#" class="btn">Check Roll No</a>
+                </div>
+                <div class="cube-wrapper"><div class="cube-placeholder"></div></div>
+                <div class="footer-info"><span>/// Examination</span><span class="pagination">6 of 6 >></span></div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="instructions">Use LEFT and RIGHT ARROW keys to slide</div>
+
+    <script>
+        const track = document.getElementById('track');
+        const cards = document.querySelectorAll('.glass-card');
+        const bgGlow = document.getElementById('bgGlow');
+        let currentIndex = 0;
+        const totalCards = cards.length;
+
+        function isMobile() { return window.innerWidth <= 768; }
+
+        function updateCarousel() {
+            let cardWidth, gap;
+            if (isMobile()) { cardWidth = window.innerWidth * 0.85; gap = 30; }
+            else { cardWidth = 700; gap = 80; }
+
+            const windowWidth = window.innerWidth;
+            const centerOffset = (windowWidth - cardWidth) / 2;
+            const shift = currentIndex * (cardWidth + gap);
+            const translateX = centerOffset - shift;
+
+            track.style.transform = `translate3d(${translateX}px, 0, 0)`;
+
+            cards.forEach((card, index) => {
+                if(index === currentIndex) {
+                    card.classList.add('active');
+                    const themeColor = card.getAttribute('data-theme');
+                    bgGlow.style.setProperty('--theme-color', themeColor);
+                    card.style.setProperty('--theme-color', themeColor);
+                    card.style.setProperty('--shadow-color', themeColor);
+                } else {
+                    card.classList.remove('active');
+                }
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') { if (currentIndex < totalCards - 1) { currentIndex++; updateCarousel(); } }
+            else if (e.key === 'ArrowLeft') { if (currentIndex > 0) { currentIndex--; updateCarousel(); } }
+        });
+
+        window.addEventListener('resize', updateCarousel);
+        updateCarousel();
+    </script>
+</body>
+</html>
