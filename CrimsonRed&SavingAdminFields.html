@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Subodh Exam Portal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=JetBrains+Mono:wght@400;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- [GLOBAL RESET] --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; outline: none; }
+
+        /* --- [GLASSMORPHISM BACKGROUND] --- */
+        body {
+            height: 100vh; width: 100%; background-color: #050505;
+            display: flex; justify-content: center; align-items: center;
+            overflow: hidden; position: relative; transition: background 0.8s ease;
+            overscroll-behavior: none;
+        }
+
+        /* Noise Texture */
+        body::before {
+            content: ""; position: absolute; inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            opacity: 0.4; pointer-events: none; z-index: 2;
+        }
+
+        /* --- [THEME ENGINE] --- */
+        .glow-effect {
+            position: absolute; width: 80vw; height: 80vw; max-width: 800px; max-height: 800px;
+            background: var(--theme-color, #1db954); filter: blur(120px); border-radius: 50%;
+            top: 50%; left: 50%; transform: translate(-50%, -50%); opacity: 0.15; z-index: 0;
+            transition: background 0.6s ease; will-change: background;
+        }
+
+        /* --- [CAROUSEL UI] --- */
+        .carousel-window {
+            width: 100%; height: 70vh; min-height: 500px;
+            position: relative; z-index: 10; display: flex; align-items: center;
+            touch-action: pan-y; user-select: none; -webkit-user-select: none;
+        }
+
+        .carousel-track {
+            display: flex; align-items: center; height: 100%;
+            transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); will-change: transform;
+            cursor: grab;
+        }
+        .carousel-track:active { cursor: grabbing; }
+
+        .glass-card {
+            flex: 0 0 700px; width: 700px; height: 450px; position: relative;
+            background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-radius: 30px; border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); padding: 40px;
+            display: flex; flex-direction: column; justify-content: space-between; overflow: hidden;
+            margin-right: 80px; opacity: 0.3; transform: scale(0.85);
+            transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        .glass-card.active {
+            opacity: 1; transform: scale(1);
+            box-shadow: 0 30px 80px -10px var(--shadow-color, rgba(29, 185, 84, 0.3));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .grid-background {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px; z-index: -1;
+        }
+
+        /* --- [CONTENT STYLING] --- */
+        .card-tab {
+            position: absolute; top: 0; right: 80px; transform: translateY(-100%);
+            background: #f0f0f0; padding: 12px 30px; border-radius: 15px 15px 0 0;
+            color: #111; font-weight: 600; font-size: 0.9rem; z-index: 20;
+        }
+
+        .meta-header {
+            display: flex; justify-content: space-between; font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.7); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;
+        }
+
+        h1 {
+            font-size: 3rem; line-height: 1.1; margin-bottom: 10px; font-weight: 700;
+            background: linear-gradient(to right, #fff, #ccc); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        h2 { font-size: 1.5rem; font-weight: 400; margin-bottom: 20px; color: var(--theme-color); }
+        p.description { font-size: 0.95rem; line-height: 1.6; color: rgba(255, 255, 255, 0.6); margin-bottom: 30px; max-width: 70%; }
+
+        .btn {
+            display: inline-block; padding: 12px 24px; border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 30px; color: white; text-decoration: none; font-size: 0.8rem;
+            transition: 0.3s; background: rgba(255,255,255,0.05); pointer-events: auto; cursor: pointer;
+        }
+        .btn:hover { background: white; color: black; }
+
+        .footer-info {
+            display: flex; justify-content: space-between; color: rgba(255, 255, 255, 0.5);
+            font-size: 0.75rem; align-items: flex-end; margin-top: auto;
+        }
+
+        /* --- [SEARCH UI] --- */
+        .search-bar {
+            width: 100%; padding: 15px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 15px; color: white; font-size: 1.1rem; margin-bottom: 20px;
+        }
+        .search-results {
+            flex: 1; overflow-y: auto; margin-right: -20px; padding-right: 20px;
+        }
+        .search-results::-webkit-scrollbar { width: 4px; }
+        .search-results::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+        .result-item {
+            background: rgba(0,0,0,0.3); padding: 15px; border-radius: 10px; margin-bottom: 10px;
+            border-left: 3px solid var(--theme-color); display: flex; justify-content: space-between; align-items: center;
+            transition: 0.2s;
+        }
+        .result-item:hover { background: rgba(255,255,255,0.05); transform: translateX(5px); }
+        .result-title { font-weight: 600; color: white; font-size: 0.95rem; margin-bottom: 4px;}
+        .result-meta { font-size: 0.75rem; color: #999; display: flex; gap: 10px; align-items: center;}
+
+        /* Tags */
+        .tag { padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.1); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px;}
+        .tag.sub { background: rgba(41, 128, 185, 0.2); color: #2980b9; } /* Blue for Subsidiary */
+        .tag.gec { background: rgba(155, 89, 182, 0.2); color: #9b59b6; } /* Purple for GEC */
+        .tag.main { background: rgba(29, 185, 84, 0.2); color: #1db954; } /* Green for Main */
+
+        /* CRIMSON RED SEMESTER (Babe's Favorite) */
+        .sem-tag {
+            color: #DC143C; /* Crimson Red */
+            font-weight: 800;
+            font-size: 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-shadow: 0 0 10px rgba(220, 20, 60, 0.4);
+        }
+
+        /* --- [LOG UI] --- */
+        .log-feed { flex: 1; overflow-y: hidden; position: relative; font-family: 'JetBrains Mono', monospace; }
+        .log-item { font-size: 0.8rem; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
+        .log-user { color: #1db954; font-weight: bold; }
+        .log-time { float: right; color: #666; font-size: 0.7rem; }
+
+        /* --- [ADMIN MODAL] --- */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(15px);
+            z-index: 100; display: flex; justify-content: center; align-items: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.4s ease;
+        }
+        .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .admin-card {
+            width: 700px; background: #111; border: 1px solid #333; border-radius: 20px;
+            padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.8); text-align: center;
+            max-height: 95vh; overflow-y: auto;
+        }
+        .admin-card::-webkit-scrollbar { width: 6px; }
+        .admin-card::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+        .admin-input, .admin-select {
+            width: 100%; padding: 15px; margin-bottom: 15px; background: #222; border: 1px solid #444;
+            color: white; border-radius: 10px; font-size: 0.9rem; appearance: none;
+        }
+        .admin-input:focus, .admin-select:focus { border-color: #1db954; }
+
+        /* Toggle */
+        .mode-switch { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #222; padding: 10px 15px; border-radius: 10px;}
+        .switch-label { color: #ccc; font-size: 0.85rem; }
+        .toggle-wrapper { position: relative; width: 40px; height: 20px; }
+        .toggle-checkbox { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 20px; }
+        .toggle-slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        .toggle-checkbox:checked + .toggle-slider { background-color: #1db954; }
+        .toggle-checkbox:checked + .toggle-slider:before { transform: translateX(20px); }
+
+        .form-row { display: flex; gap: 15px; margin-bottom: 0px; }
+        .form-group { flex: 1; text-align: left; }
+        .label-text { display: block; color: #777; font-size: 0.75rem; margin-bottom: 5px; margin-left: 5px;}
+
+        .checkbox-section { text-align: left; margin: 10px 0 20px 0; }
+        .checkbox-group { display: flex; gap: 15px; flex-wrap: wrap; color: #ccc; font-size: 0.85rem; }
+        .checkbox-group label { display: flex; align-items: center; gap: 6px; cursor: pointer; transition: 0.2s; background: #222; padding: 8px 12px; border-radius: 8px; border: 1px solid #333;}
+        .checkbox-group label:hover { border-color: #1db954; color: #fff; }
+        .checkbox-group input[type="checkbox"] { accent-color: #1db954; width: 14px; height: 14px; }
+
+        .drop-zone {
+            border: 2px dashed #444; padding: 30px; margin-bottom: 20px; color: #666;
+            border-radius: 10px; transition: 0.3s; cursor: pointer; font-size: 0.9rem;
+        }
+        .drop-zone:hover, .drop-zone.drag-over { border-color: #1db954; background: rgba(29, 185, 84, 0.05); color: #1db954; }
+
+        .hidden-stage { display: none; }
+
+        @media (max-width: 768px) {
+            .glass-card { flex: 0 0 85vw; width: 85vw; height: 60vh; margin-right: 30px; padding: 25px; }
+            .card-tab { right: 20px; font-size: 0.8rem; padding: 8px 20px; }
+            h1 { font-size: 2.2rem; }
+            .cube-wrapper { width: 150px; height: 150px; bottom: 0; right: -20px; }
+            .admin-card { width: 95vw; padding: 20px; }
+            .form-row { flex-direction: column; gap: 0; }
+        }
+
+        .top-left-credit { position: absolute; top: 40px; left: 40px; color: rgba(255,255,255,0.7); font-size: 0.8rem; z-index: 5; }
+        .dots { position: absolute; top: 40px; right: 40px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; z-index: 5; }
+        .dot { width: 4px; height: 4px; background: rgba(255,255,255,0.5); border-radius: 50%; }
+        .instructions { position: absolute; bottom: 30px; width: 100%; text-align: center; color: rgba(255,255,255,0.3); font-size: 0.8rem; animation: blink 2s infinite; }
+        @keyframes blink { 0%, 100% { opacity: 0.3;} 50% { opacity: 0.8;}}
+    </style>
+</head>
+<body>
+
+    <div class="glow-effect" id="bgGlow"></div>
+    <div class="top-left-credit">SS Jain Subodh College<br>Exam Archive Portal<br>&#8599;</div>
+    <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+
+    <div class="carousel-window" id="swipeZone">
+        <div class="carousel-track" id="track">
+
+            <div class="glass-card active" data-theme="#1db954">
+                <div class="card-tab">Paper Archive</div><div class="grid-background"></div>
+                <div class="content-wrapper" style="height:100%; display:flex; flex-direction:column;">
+                    <div class="meta-header"><span>Subodh Database</span><span>Live</span></div>
+                    <h1 style="font-size:2.5rem;">Search<br>Papers</h1>
+
+                    <input type="search" class="search-bar" id="paperSearch" placeholder="Subject, Code, or Paper Name (e.g. 'History')">
+
+                    <div class="search-results" id="searchResults">
+                        <div style="color:#666; margin-top:20px; font-size:0.9rem;">Start typing to search archive...</div>
+                    </div>
+                </div>
+                <div class="footer-info"><span>/// Student Cell</span><span class="pagination">1 of 6 >></span></div>
+            </div>
+
+            <div class="glass-card" data-theme="#8e44ad">
+                <div class="card-tab">Statistics</div><div class="grid-background"></div>
+                <div class="content-wrapper">
+                    <div class="meta-header"><span>Paper I</span><span>21. 11. 25</span></div>
+                    <h1>Statistical<br>Inference</h1><h2>Testing Hypothesis;</h2>
+                    <p class="description">Download papers regarding sampling distributions, estimation theory, and rigorous hypothesis testing.</p>
+                    <a href="#" class="btn">View Papers (5)</a>
+                </div><div class="cube-wrapper"><div class="cube-placeholder"></div></div>
+                <div class="footer-info"><span>/// Student Cell</span><span class="pagination">2 of 6 >></span></div>
+            </div>
+
+            <div class="glass-card" data-theme="#2980b9">
+                <div class="card-tab">Comp App</div><div class="grid-background"></div>
+                <div class="content-wrapper">
+                    <div class="meta-header"><span>Practical</span><span>22. 11. 25</span></div>
+                    <h1>Data<br>Structures</h1><h2>C++ & Algorithms;</h2>
+                    <p class="description">Review code snippets and theory papers for Arrays, Linked Lists, Trees, and Sorting algorithms.</p>
+                    <a href="#" class="btn">View Code</a>
+                </div><div class="cube-wrapper"><div class="cube-placeholder"></div></div>
+                <div class="footer-info"><span>/// Student Cell</span><span class="pagination">3 of 6 >></span></div>
+            </div>
+
+            <div class="glass-card" data-theme="#d35400">
+                <div class="card-tab">Notice Board</div><div class="grid-background"></div>
+                <div class="content-wrapper">
+                    <div class="meta-header"><span>Alert</span><span>23. 11. 25</span></div>
+                    <h1>Semester<br>Exams</h1><h2>Datesheet 2025;</h2>
+                    <p class="description">The tentative schedule for the upcoming Semester III examinations. Check your batch timings.</p>
+                    <a href="#" class="btn">Download PDF</a>
+                </div><div class="cube-wrapper"><div class="cube-placeholder"></div></div>
+                <div class="footer-info"><span>/// Admin Office</span><span class="pagination">4 of 6 >></span></div>
+            </div>
+
+            <div class="glass-card" data-theme="#c0392b">
+                <div class="card-tab">Restricted</div><div class="grid-background"></div>
+                <div class="content-wrapper">
+                    <div class="meta-header"><span>System</span><span>24. 11. 25</span></div>
+                    <h1>Admin<br>Uploads</h1><h2>Authorized Only;</h2>
+                    <p class="description">Secure gateway for faculty to upload new papers. Requires 'Alvido' authentication credentials.</p>
+                    <a href="#" class="btn">Login Required</a>
+                </div><div class="cube-wrapper"><div class="cube-placeholder"></div></div>
+                <div class="footer-info"><span>/// Security</span><span class="pagination">5 of 6 >></span></div>
+            </div>
+
+             <div class="glass-card" data-theme="#16a085">
+                <div class="card-tab">Contribution Log</div><div class="grid-background"></div>
+                <div class="content-wrapper" style="height:100%; display:flex; flex-direction:column;">
+                    <div class="meta-header"><span>Live Feed</span><span>Verified</span></div>
+                    <h1 style="margin-bottom:20px;">Metadata<br>Ledger</h1>
+
+                    <div class="log-feed" id="logFeed">
+                        <div class="log-item">
+                            <span class="log-user">Alvido</span> <span class="log-action">uploaded PHY-302</span>
+                            <span class="log-time">10 mins ago</span>
+                        </div>
+                        <div class="log-item">
+                            <span class="log-user">Faculty_B</span> <span class="log-action">updated History-II</span>
+                            <span class="log-time">2 hrs ago</span>
+                        </div>
+                         <div class="log-item">
+                            <span class="log-user">System</span> <span class="log-action">synced database</span>
+                            <span class="log-time">4 hrs ago</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-info"><span>/// Transparency</span><span class="pagination">6 of 6 >></span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="instructions">Use ARROW keys or SWIPE to slide</div>
+
+    <div class="modal-overlay" id="adminModal">
+        <div class="admin-card">
+
+            <div id="authStage">
+                <h2 style="color:white; margin-bottom: 10px;">Security Check</h2>
+                <p style="color:#777; font-size:0.8rem;">Identify yourself to proceed.</p>
+                <input type="password" id="adminNameInput" class="admin-input" placeholder="Identity Verification">
+                <button class="btn" style="width:100%; background:#333;" onclick="verifyAdmin()">Authenticate</button>
+                <p id="authError" style="color:#ff4444; margin-top:10px; font-size:0.8rem; display:none;">Access Denied: Unknown Entity.</p>
+            </div>
+
+            <div id="uploadStage" class="hidden-stage">
+                <h2 style="color:#1db954; margin-bottom: 20px;">Admin Console</h2>
+
+                <div class="mode-switch">
+                    <span class="switch-label">Apply details to all files?</span>
+                    <div class="toggle-wrapper">
+                        <input type="checkbox" class="toggle-checkbox" checked id="batchToggle">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <span class="label-text">Subject Stream</span>
+                        <select class="admin-select">
+                            <option>Physics</option><option>Statistics</option><option>Computer Application</option>
+                            <option>Mathematics</option><option>Chemistry</option><option>Economics</option>
+                            <option>History</option><option>Political Science</option><option>Public Administration</option>
+                            <option>Geography</option><option>Hindi Lit</option><option>English Lit</option>
+                            <option>Sociology</option><option>Philosophy</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <span class="label-text">Session Year</span>
+                        <select class="admin-select">
+                            <option>2025</option><option>2024</option><option>2023</option><option>2022</option>
+                            <option>2021</option><option>2020</option><option>2019</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <span class="label-text">Semester</span>
+                        <select class="admin-select">
+                            <option>Semester I</option><option>Semester II</option><option>Semester III</option>
+                            <option>Semester IV</option><option>Semester V</option><option>Semester VI</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <span class="label-text">Exam Type</span>
+                        <select class="admin-select">
+                            <option>Main Semester Exam</option>
+                            <option>CIA (Internal)</option>
+                            <option>Back / Due</option>
+                            <option>Re-Evaluation</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <span class="label-text">Category</span>
+                        <select class="admin-select">
+                            <option>Subsidiary (Core)</option>
+                            <option>Generic Elective (GEC)</option>
+                            <option>Ability Enhancement (AEC)</option>
+                            <option>Skill Enhancement (SEC)</option>
+                            <option>Value Added (VAC)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <span class="label-text">Medium</span>
+                        <select class="admin-select">
+                            <option>English</option><option>Hindi</option><option>Bilingual</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <span class="label-text">Paper Code</span>
+                        <input type="text" class="admin-input" style="margin-bottom:0;" placeholder="e.g. PHY-302">
+                    </div>
+                    <div class="form-group">
+                        <span class="label-text">Max Marks</span>
+                        <input type="number" class="admin-input" style="margin-bottom:0;" placeholder="Total (e.g. 100)">
+                    </div>
+                </div>
+
+                <div class="checkbox-section">
+                    <span class="checkbox-label">Paper Number (Select relevant)</span>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" value="1"> Paper I</label>
+                        <label><input type="checkbox" value="2"> Paper II</label>
+                        <label><input type="checkbox" value="3"> Paper III</label>
+                        <label><input type="checkbox" value="P"> Practical</label>
+                    </div>
+                </div>
+
+                <div class="drop-zone" id="dropZone">
+                    Drag & Drop Multiple PDFs here
+                </div>
+                <input type="file" id="fileInput" hidden multiple accept=".pdf">
+
+                <button class="btn" style="width:100%; background:#1db954; color:black; font-weight:bold;">Upload to Database</button>
+                <button style="background:none; border:none; color:#555; margin-top:15px; cursor:pointer; text-decoration:underline;" onclick="closeModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- [GLOBAL VARS] ---
+        const track = document.getElementById('track');
+        const cards = document.querySelectorAll('.glass-card');
+        const bgGlow = document.getElementById('bgGlow');
+        const swipeZone = document.getElementById('swipeZone');
+        let currentIndex = 0;
+        const totalCards = cards.length;
+
+        // --- [MOCK DATABASE - FROM YOUR PDFS] ---
+        const papersDB = [
+            // Physics
+            { title: "Quantum Mechanics", code: "PHY-302", sem: "III", subj: "Physics", cat: "Subsidiary", type: "Main" },
+            { title: "Electromagnetism", code: "PHY-201", sem: "II", subj: "Physics", cat: "Subsidiary", type: "Back" },
+            // History (PDF Source)
+            { title: "History of India (Beginning to 1200 A.D.)", code: "HIS-101", sem: "I", subj: "History", cat: "Subsidiary", type: "Main" },
+            { title: "History of Medieval India (1200-1526)", code: "HIS-201", sem: "III", subj: "History", cat: "Subsidiary", type: "Main" },
+            { title: "History of Modern World", code: "HIS-302", sem: "V", subj: "History", cat: "Subsidiary", type: "Main" },
+            // Statistics
+            { title: "Applied Statistics-I", code: "STAT-301", sem: "III", subj: "Statistics", cat: "Subsidiary", type: "Main" },
+            { title: "Sample Survey-I", code: "STAT-501", sem: "V", subj: "Statistics", cat: "Subsidiary", type: "Main" },
+            // Others
+            { title: "Java Programming", code: "CSC-301", sem: "III", subj: "Comp App", cat: "Subsidiary", type: "Main" },
+            { title: "General Hindi", code: "HIN-AEC", sem: "I", subj: "Hindi", cat: "AEC", type: "Main" },
+            { title: "Public Administration Institutions", code: "PUB-101", sem: "I", subj: "Pub Adm", cat: "Subsidiary", type: "Main" },
+            { title: "Business Communication Skills", code: "SEC-101", sem: "III", subj: "General", cat: "SEC", type: "CIA" },
+        ];
+
+        // --- [SEARCH LOGIC] ---
+        const searchInput = document.getElementById('paperSearch');
+        const resultsContainer = document.getElementById('searchResults');
+
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            resultsContainer.innerHTML = "";
+
+            if(query.length === 0) {
+                resultsContainer.innerHTML = '<div style="color:#666; margin-top:20px; font-size:0.9rem;">Start typing to search...</div>';
+                return;
+            }
+
+            const filtered = papersDB.filter(p =>
+                p.title.toLowerCase().includes(query) ||
+                p.code.toLowerCase().includes(query) ||
+                p.subj.toLowerCase().includes(query)
+            );
+
+            if(filtered.length === 0) {
+                resultsContainer.innerHTML = '<div style="color:#ff4444; margin-top:20px; font-size:0.9rem;">No papers found.</div>';
+            } else {
+                filtered.forEach(p => {
+                    const item = document.createElement('div');
+                    item.className = 'result-item';
+                    let tagClass = "tag main";
+                    if(p.cat === "Subsidiary") tagClass = "tag sub";
+                    if(p.cat === "GEC" || p.cat === "SEC") tagClass = "tag gec";
+                    if(p.type === "Back" || p.type === "CIA") tagClass = "tag cia";
+
+                    item.innerHTML = `
+                        <div>
+                            <div class="result-title">${p.title}</div>
+                            <div class="result-meta">
+                                <span class="${tagClass}">${p.cat}</span>
+                                <span>${p.code}</span>
+                                <span style="color:#ccc">• ${p.subj}</span>
+                            </div>
+                        </div>
+                        <div class="sem-tag">${p.sem}</div>
+                    `;
+                    resultsContainer.appendChild(item);
+                });
+            }
+        });
+
+        // --- [CAROUSEL & INTERACTION] ---
+        function isMobile() { return window.innerWidth <= 768; }
+        function updateCarousel() {
+            let cardWidth, gap;
+            if (isMobile()) { cardWidth = window.innerWidth * 0.85; gap = 30; }
+            else { cardWidth = 700; gap = 80; }
+            const windowWidth = window.innerWidth;
+            const centerOffset = (windowWidth - cardWidth) / 2;
+            const shift = currentIndex * (cardWidth + gap);
+            const translateX = centerOffset - shift;
+            track.style.transform = `translate3d(${translateX}px, 0, 0)`;
+            cards.forEach((card, index) => {
+                if(index === currentIndex) {
+                    card.classList.add('active');
+                    const themeColor = card.getAttribute('data-theme');
+                    bgGlow.style.setProperty('--theme-color', themeColor);
+                    card.style.setProperty('--theme-color', themeColor);
+                    card.style.setProperty('--shadow-color', themeColor);
+                } else { card.classList.remove('active'); }
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if(!document.getElementById('adminModal').classList.contains('open')){
+                if (e.key === 'ArrowRight') if (currentIndex < totalCards - 1) { currentIndex++; updateCarousel(); }
+                if (e.key === 'ArrowLeft') if (currentIndex > 0) { currentIndex--; updateCarousel(); }
+            }
+        });
+
+        let touchStartX = 0; let touchEndX = 0; const swipeThreshold = 50;
+        swipeZone.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, {passive: true});
+        swipeZone.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            if (touchStartX - touchEndX > swipeThreshold) { if (currentIndex < totalCards - 1) { currentIndex++; updateCarousel(); } }
+            if (touchEndX - touchStartX > swipeThreshold) { if (currentIndex > 0) { currentIndex--; updateCarousel(); } }
+        }, {passive: true});
+        window.addEventListener('resize', updateCarousel);
+        updateCarousel();
+
+        // --- [ADMIN MODAL] ---
+        let keyBuffer = ""; const secretCode = "upload";
+        const adminModal = document.getElementById('adminModal');
+        const adminNameInput = document.getElementById('adminNameInput');
+        const authStage = document.getElementById('authStage');
+        const uploadStage = document.getElementById('uploadStage');
+        const authError = document.getElementById('authError');
+        const batchToggle = document.getElementById('batchToggle');
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+
+        document.addEventListener('keydown', (e) => {
+            if(adminModal.classList.contains('open')) return;
+            keyBuffer += e.key.toLowerCase();
+            if (keyBuffer.length > secretCode.length) keyBuffer = keyBuffer.slice(-secretCode.length);
+            if (keyBuffer === secretCode) { openModal(); keyBuffer = ""; }
+        });
+
+        function openModal() { adminModal.classList.add('open'); adminNameInput.focus(); }
+        function closeModal() {
+            adminModal.classList.remove('open');
+            setTimeout(() => {
+                authStage.classList.remove('hidden-stage');
+                uploadStage.classList.add('hidden-stage');
+                adminNameInput.value = "";
+                authError.style.display = 'none';
+                dropZone.innerText = "Drag & Drop Multiple PDFs here";
+                dropZone.classList.remove('drag-over');
+                fileInput.value = "";
+            }, 500);
+        }
+        function verifyAdmin() {
+            if (adminNameInput.value.trim().toLowerCase() === "alvido") {
+                authStage.classList.add('hidden-stage');
+                uploadStage.classList.remove('hidden-stage');
+            } else { authError.style.display = 'block'; }
+        }
+        adminNameInput.addEventListener('keypress', function (e) { if (e.key === 'Enter') verifyAdmin(); });
+
+        // --- [FIXED BATCH TOGGLE LOGIC] ---
+        batchToggle.addEventListener('change', function() {
+            if(this.checked) {
+                // Enable Multiple
+                fileInput.multiple = true;
+                dropZone.innerText = "Drag & Drop Multiple PDFs here (Batch Mode)";
+            } else {
+                // Disable Multiple
+                fileInput.multiple = false;
+                dropZone.innerText = "Drag & Drop Single PDF here (Individual Mode)";
+            }
+        });
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                dropZone.innerText = fileInput.files.length + " File(s) Selected";
+                dropZone.style.borderColor = "#1db954";
+                dropZone.style.color = "#1db954";
+            }
+        });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-over'); dropZone.innerText = "Release to Drop"; });
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('drag-over');
+            dropZone.innerText = batchToggle.checked ? "Drag & Drop Multiple PDFs here" : "Drag & Drop Single PDF here";
+        });
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault(); dropZone.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                // If batch is OFF, only take the first file
+                if(!batchToggle.checked) {
+                    const dt = new DataTransfer();
+                    dt.items.add(e.dataTransfer.files[0]);
+                    fileInput.files = dt.files;
+                } else {
+                    fileInput.files = e.dataTransfer.files;
+                }
+                dropZone.innerText = fileInput.files.length + " File(s) Selected";
+                dropZone.style.borderColor = "#1db954"; dropZone.style.color = "#1db954";
+            }
+        });
+    </script>
+</body>
+</html>
