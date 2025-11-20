@@ -605,6 +605,18 @@ p.description {
     z-index: 5; 
 }
 
+.top-left-credit a {
+    color: rgba(255,255,255,0.9);
+    text-decoration: none;
+    transition: color 0.2s ease;
+    cursor: pointer;
+}
+
+.top-left-credit a:hover {
+    color: rgba(255,255,255,1);
+    text-decoration: underline;
+}
+
 .dots { 
     position: absolute; 
     top: 40px; 
