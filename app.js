@@ -125,6 +125,8 @@ const SearchModule = {
 
 // --- [CAROUSEL FUNCTIONALITY] ---
 const CarouselModule = {
+    resizeTimer: null,
+    
     init: function() {
         this.setupEventListeners();
         this.updateCarousel();
@@ -135,32 +137,35 @@ const CarouselModule = {
     },
     
     updateCarousel: function() {
-        let cardWidth, gap;
-        if (this.isMobile()) {
-            cardWidth = window.innerWidth * 0.85;
-            gap = 30;
-        } else {
-            cardWidth = 700;
-            gap = 80;
-        }
-        
-        const windowWidth = window.innerWidth;
-        const centerOffset = (windowWidth - cardWidth) / 2;
-        const shift = currentIndex * (cardWidth + gap);
-        const translateX = centerOffset - shift;
-        
-        track.style.transform = `translate3d(${translateX}px, 0, 0)`;
-        
-        cards.forEach((card, index) => {
-            if (index === currentIndex) {
-                card.classList.add('active');
-                const themeColor = card.getAttribute('data-theme');
-                bgGlow.style.setProperty('--theme-color', themeColor);
-                card.style.setProperty('--theme-color', themeColor);
-                card.style.setProperty('--shadow-color', themeColor);
+        // Use requestAnimationFrame for smooth rendering
+        requestAnimationFrame(() => {
+            let cardWidth, gap;
+            if (this.isMobile()) {
+                cardWidth = window.innerWidth * 0.85;
+                gap = 30;
             } else {
-                card.classList.remove('active');
+                cardWidth = 700;
+                gap = 80;
             }
+            
+            const windowWidth = window.innerWidth;
+            const centerOffset = (windowWidth - cardWidth) / 2;
+            const shift = currentIndex * (cardWidth + gap);
+            const translateX = centerOffset - shift;
+            
+            track.style.transform = `translate3d(${translateX}px, 0, 0)`;
+            
+            cards.forEach((card, index) => {
+                if (index === currentIndex) {
+                    card.classList.add('active');
+                    const themeColor = card.getAttribute('data-theme');
+                    bgGlow.style.setProperty('--theme-color', themeColor);
+                    card.style.setProperty('--theme-color', themeColor);
+                    card.style.setProperty('--shadow-color', themeColor);
+                } else {
+                    card.classList.remove('active');
+                }
+            });
         });
     },
     
@@ -179,28 +184,91 @@ const CarouselModule = {
             }
         });
         
-        // Touch navigation
+        // Touch navigation with improved performance
         let touchStartX = 0;
         let touchEndX = 0;
+        let touchStartY = 0;
+        let isSwiping = false;
+        let initialTransform = 0;
         
         swipeZone.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
+            touchStartX = e.changedTouches[0].clientX;
+            touchStartY = e.changedTouches[0].clientY;
+            isSwiping = false;
+            
+            // Store initial transform for smooth dragging
+            const currentTransform = track.style.transform;
+            const matrix = new DOMMatrix(currentTransform);
+            initialTransform = matrix.m41; // Get X translation
+        }, { passive: true });
+        
+        swipeZone.addEventListener('touchmove', e => {
+            if (!isSwiping) {
+                const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartX);
+                const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+                
+                // Only start swiping if horizontal movement is dominant
+                if (deltaX > deltaY && deltaX > 10) {
+                    isSwiping = true;
+                }
+            }
+            
+            if (isSwiping) {
+                // Temporarily disable transition for smooth dragging
+                track.style.transition = 'none';
+                
+                const currentX = e.changedTouches[0].clientX;
+                const diff = currentX - touchStartX;
+                
+                // Apply drag with resistance at boundaries
+                let dragAmount = diff;
+                if ((currentIndex === 0 && diff > 0) || (currentIndex === totalCards - 1 && diff < 0)) {
+                    dragAmount = diff * 0.3; // Add resistance at edges
+                }
+                
+                requestAnimationFrame(() => {
+                    track.style.transform = `translate3d(${initialTransform + dragAmount}px, 0, 0)`;
+                });
+            }
         }, { passive: true });
         
         swipeZone.addEventListener('touchend', e => {
-            touchEndX = e.changedTouches[0].screenX;
-            if (touchStartX - touchEndX > CONFIG.SWIPE_THRESHOLD && currentIndex < totalCards - 1) {
-                currentIndex++;
+            touchEndX = e.changedTouches[0].clientX;
+            
+            // Re-enable transition
+            track.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            
+            if (isSwiping) {
+                const swipeDistance = touchStartX - touchEndX;
+                
+                if (Math.abs(swipeDistance) > CONFIG.SWIPE_THRESHOLD) {
+                    if (swipeDistance > 0 && currentIndex < totalCards - 1) {
+                        currentIndex++;
+                    } else if (swipeDistance < 0 && currentIndex > 0) {
+                        currentIndex--;
+                    }
+                }
+                
+                // Snap back to correct position
                 this.updateCarousel();
-            }
-            if (touchEndX - touchStartX > CONFIG.SWIPE_THRESHOLD && currentIndex > 0) {
-                currentIndex--;
-                this.updateCarousel();
+                isSwiping = false;
             }
         }, { passive: true });
         
-        // Window resize
-        window.addEventListener('resize', () => this.updateCarousel());
+        swipeZone.addEventListener('touchcancel', e => {
+            // Re-enable transition and snap back on cancel
+            track.style.transition = 'transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+            this.updateCarousel();
+            isSwiping = false;
+        }, { passive: true });
+        
+        // Window resize with debouncing for better performance
+        window.addEventListener('resize', () => {
+            clearTimeout(this.resizeTimer);
+            this.resizeTimer = setTimeout(() => {
+                this.updateCarousel();
+            }, 150);
+        });
     }
 };
 
