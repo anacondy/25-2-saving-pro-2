@@ -125,6 +125,8 @@ const SearchModule = {
 
 // --- [CAROUSEL FUNCTIONALITY] ---
 const CarouselModule = {
+    resizeTimer: null,
+    
     init: function() {
         this.setupEventListeners();
         this.updateCarousel();
@@ -135,32 +137,35 @@ const CarouselModule = {
     },
     
     updateCarousel: function() {
-        let cardWidth, gap;
-        if (this.isMobile()) {
-            cardWidth = window.innerWidth * 0.85;
-            gap = 30;
-        } else {
-            cardWidth = 700;
-            gap = 80;
-        }
-        
-        const windowWidth = window.innerWidth;
-        const centerOffset = (windowWidth - cardWidth) / 2;
-        const shift = currentIndex * (cardWidth + gap);
-        const translateX = centerOffset - shift;
-        
-        track.style.transform = `translate3d(${translateX}px, 0, 0)`;
-        
-        cards.forEach((card, index) => {
-            if (index === currentIndex) {
-                card.classList.add('active');
-                const themeColor = card.getAttribute('data-theme');
-                bgGlow.style.setProperty('--theme-color', themeColor);
-                card.style.setProperty('--theme-color', themeColor);
-                card.style.setProperty('--shadow-color', themeColor);
+        // Use requestAnimationFrame for smooth rendering
+        requestAnimationFrame(() => {
+            let cardWidth, gap;
+            if (this.isMobile()) {
+                cardWidth = window.innerWidth * 0.85;
+                gap = 30;
             } else {
-                card.classList.remove('active');
+                cardWidth = 700;
+                gap = 80;
             }
+            
+            const windowWidth = window.innerWidth;
+            const centerOffset = (windowWidth - cardWidth) / 2;
+            const shift = currentIndex * (cardWidth + gap);
+            const translateX = centerOffset - shift;
+            
+            track.style.transform = `translate3d(${translateX}px, 0, 0)`;
+            
+            cards.forEach((card, index) => {
+                if (index === currentIndex) {
+                    card.classList.add('active');
+                    const themeColor = card.getAttribute('data-theme');
+                    bgGlow.style.setProperty('--theme-color', themeColor);
+                    card.style.setProperty('--theme-color', themeColor);
+                    card.style.setProperty('--shadow-color', themeColor);
+                } else {
+                    card.classList.remove('active');
+                }
+            });
         });
     },
     
@@ -199,8 +204,13 @@ const CarouselModule = {
             }
         }, { passive: true });
         
-        // Window resize
-        window.addEventListener('resize', () => this.updateCarousel());
+        // Window resize with debouncing for better performance
+        window.addEventListener('resize', () => {
+            clearTimeout(this.resizeTimer);
+            this.resizeTimer = setTimeout(() => {
+                this.updateCarousel();
+            }, 150);
+        });
     }
 };
 

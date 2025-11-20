@@ -18,8 +18,11 @@ body {
     align-items: center;
     overflow: hidden; 
     position: relative; 
-    transition: background 0.8s ease;
+    transition: background 0.5s ease;
     overscroll-behavior: none;
+    /* Hardware acceleration */
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 /* Noise Texture */
@@ -41,15 +44,17 @@ body::before {
     max-width: 800px; 
     max-height: 800px;
     background: var(--theme-color, #1db954); 
-    filter: blur(120px); 
+    filter: blur(80px); 
     border-radius: 50%;
     top: 50%; 
     left: 50%; 
-    transform: translate(-50%, -50%); 
+    transform: translate3d(-50%, -50%, 0); 
     opacity: 0.15; 
     z-index: 0;
-    transition: background 0.6s ease; 
+    transition: background 0.4s ease; 
     will-change: background;
+    /* Hardware acceleration */
+    -webkit-transform: translate3d(-50%, -50%, 0);
 }
 
 /* --- [CAROUSEL UI] --- */
@@ -70,9 +75,12 @@ body::before {
     display: flex; 
     align-items: center; 
     height: 100%;
-    transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); 
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); 
     will-change: transform;
     cursor: grab;
+    /* Hardware acceleration */
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
 }
 
 .carousel-track:active { 
@@ -85,8 +93,8 @@ body::before {
     height: 450px; 
     position: relative;
     background: rgba(255, 255, 255, 0.03); 
-    backdrop-filter: blur(20px); 
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(12px); 
+    -webkit-backdrop-filter: blur(12px);
     border-radius: 30px; 
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5); 
@@ -97,15 +105,23 @@ body::before {
     overflow: hidden;
     margin-right: 80px; 
     opacity: 0.3; 
-    transform: scale(0.85);
-    transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    transform: scale(0.85) translate3d(0, 0, 0);
+    transition: opacity 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
+                transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                border 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    will-change: opacity, transform;
+    /* Hardware acceleration */
+    -webkit-transform: scale(0.85) translate3d(0, 0, 0);
 }
 
 .glass-card.active {
     opacity: 1; 
-    transform: scale(1);
+    transform: scale(1) translate3d(0, 0, 0);
     box-shadow: 0 30px 80px -10px var(--shadow-color, rgba(29, 185, 84, 0.3));
     border: 1px solid rgba(255, 255, 255, 0.2);
+    /* Hardware acceleration */
+    -webkit-transform: scale(1) translate3d(0, 0, 0);
 }
 
 .grid-background {
@@ -177,15 +193,21 @@ p.description {
     color: white; 
     text-decoration: none; 
     font-size: 0.8rem;
-    transition: 0.3s; 
+    transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease; 
     background: rgba(255,255,255,0.05); 
     pointer-events: auto; 
     cursor: pointer;
+    /* Hardware acceleration */
+    will-change: background, color;
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
 }
 
 .btn:hover { 
     background: white; 
-    color: black; 
+    color: black;
+    transform: translate3d(0, -2px, 0);
+    -webkit-transform: translate3d(0, -2px, 0);
 }
 
 .footer-info {
@@ -234,12 +256,17 @@ p.description {
     display: flex; 
     justify-content: space-between; 
     align-items: center;
-    transition: 0.2s;
+    transition: background 0.2s ease, transform 0.2s ease;
+    /* Hardware acceleration */
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
 }
 
 .result-item:hover { 
     background: rgba(255,255,255,0.05); 
-    transform: translateX(5px); 
+    transform: translate3d(5px, 0, 0);
+    -webkit-transform: translate3d(5px, 0, 0);
 }
 
 .result-title { 
@@ -326,14 +353,19 @@ p.description {
     width: 100%; 
     height: 100%;
     background: rgba(0,0,0,0.85); 
-    backdrop-filter: blur(15px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     z-index: 100; 
     display: flex; 
     justify-content: center; 
     align-items: center;
     opacity: 0; 
     pointer-events: none; 
-    transition: opacity 0.4s ease;
+    transition: opacity 0.3s ease;
+    /* Hardware acceleration */
+    will-change: opacity;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
 }
 
 .modal-overlay.open { 
@@ -414,8 +446,10 @@ p.description {
     right: 0; 
     bottom: 0; 
     background-color: #444; 
-    transition: .4s; 
-    border-radius: 20px; 
+    transition: background-color 0.3s ease; 
+    border-radius: 20px;
+    /* Hardware acceleration */
+    will-change: background-color;
 }
 
 .toggle-slider:before { 
@@ -426,8 +460,12 @@ p.description {
     left: 2px; 
     bottom: 2px; 
     background-color: white; 
-    transition: .4s; 
-    border-radius: 50%; 
+    transition: transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94); 
+    border-radius: 50%;
+    /* Hardware acceleration */
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
+    -webkit-transform: translate3d(0, 0, 0);
 }
 
 .toggle-checkbox:checked + .toggle-slider { 
@@ -435,7 +473,8 @@ p.description {
 }
 
 .toggle-checkbox:checked + .toggle-slider:before { 
-    transform: translateX(20px); 
+    transform: translate3d(20px, 0, 0);
+    -webkit-transform: translate3d(20px, 0, 0);
 }
 
 .form-row { 
@@ -475,11 +514,13 @@ p.description {
     align-items: center; 
     gap: 6px; 
     cursor: pointer; 
-    transition: 0.2s; 
+    transition: border-color 0.2s ease, color 0.2s ease; 
     background: #222; 
     padding: 8px 12px; 
     border-radius: 8px; 
     border: 1px solid #333;
+    /* Hardware acceleration */
+    will-change: border-color, color;
 }
 
 .checkbox-group label:hover { 
@@ -499,9 +540,11 @@ p.description {
     margin-bottom: 20px; 
     color: #666;
     border-radius: 10px; 
-    transition: 0.3s; 
+    transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease; 
     cursor: pointer; 
     font-size: 0.9rem;
+    /* Hardware acceleration */
+    will-change: border-color, background, color;
 }
 
 .drop-zone:hover, .drop-zone.drag-over { 
@@ -520,7 +563,10 @@ p.description {
         width: 85vw; 
         height: 60vh; 
         margin-right: 30px; 
-        padding: 25px; 
+        padding: 25px;
+        /* Reduce blur for better mobile performance */
+        backdrop-filter: blur(8px); 
+        -webkit-backdrop-filter: blur(8px);
     }
     .card-tab { 
         right: 20px; 
@@ -543,6 +589,10 @@ p.description {
     .form-row { 
         flex-direction: column; 
         gap: 0; 
+    }
+    /* Further optimize glow effect for mobile */
+    .glow-effect {
+        filter: blur(60px);
     }
 }
 
